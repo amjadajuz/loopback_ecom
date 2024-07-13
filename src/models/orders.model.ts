@@ -26,7 +26,6 @@ export class Orders extends Entity {
   })
   products: string[];
 
-
   constructor(data?: Partial<Orders>) {
     super(data);
   }

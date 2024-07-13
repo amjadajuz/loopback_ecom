@@ -1,3 +1,4 @@
+import {inject} from '@loopback/core';
 import {
   Count,
   CountSchema,
@@ -17,14 +18,17 @@ import {
   requestBody,
   response
 } from '@loopback/rest';
-import {Orders} from '../models';
-import {OrdersRepository} from '../repositories';
+import {Orders, Products} from '../models';
+import {OrdersRepository, ProductsRepository} from '../repositories';
 
 
 export class OrdersController {
   constructor(
     @repository(OrdersRepository)
     public ordersRepository: OrdersRepository,
+
+    @inject('repositories.ProductsRepository')
+    public productsRepository: ProductsRepository,
   ) { }
 
   @post('/orders')
@@ -170,5 +174,31 @@ export class OrdersController {
     };
 
     return this.ordersRepository.find(filter);
+  }
+
+
+  @get('/orders/{orderId}/products')
+  @response(200, {
+    description: 'List of products for a specific order',
+    content: {
+      'application/json': {
+        schema: {
+          type: 'array',
+          items: getModelSchemaRef(Products),
+        },
+      },
+    },
+  })
+  async findProductsByOrderId(
+    @param.path.string('orderId') id: string,
+  ): Promise<Products[]> {
+    const order = await this.ordersRepository.findById(id);
+    if (!order) {
+      throw new Error(`Order with ID ${id} not found.`);
+    }
+    const productIds = order.products || [];
+    const products = await this.productsRepository.find();
+    return products.filter(product => productIds.includes(product.id));
+
   }
 }
